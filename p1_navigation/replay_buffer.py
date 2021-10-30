@@ -10,7 +10,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""
 
-    def __init__(self, action_size, buffer_size, batch_size, seed):
+    def __init__(
+        self, action_size: int, buffer_size: int, batch_size: int, seed: int,
+    ):
         """Initialize a ReplayBuffer object.
 
         Params
@@ -29,7 +31,14 @@ class ReplayBuffer:
         )
         random.seed(seed)
 
-    def add(self, state, action, reward, next_state, done):
+    def add(
+        self,
+        state: np.ndarray,
+        action: int,
+        reward: float,
+        next_state: np.ndarray,
+        done: bool,
+    ):
         """Add a new experience to memory."""
         e = self.experience(state, action, reward, next_state, done)
         self.memory.append(e)
@@ -39,13 +48,27 @@ class ReplayBuffer:
         experiences = random.sample(self.memory, k=self.batch_size)
 
         states = (
-            torch.from_numpy(np.vstack([e.state for e in experiences if e is not None]))
+            torch.from_numpy(
+                np.vstack(
+                    [
+                        np.expand_dims(e.state, axis=0)
+                        for e in experiences
+                        if e is not None
+                    ]
+                )
+            )
             .float()
             .to(device)
         )
         actions = (
             torch.from_numpy(
-                np.vstack([e.action for e in experiences if e is not None])
+                np.vstack(
+                    [
+                        np.expand_dims(e.action, axis=0)
+                        for e in experiences
+                        if e is not None
+                    ]
+                )
             )
             .long()
             .to(device)
@@ -59,16 +82,26 @@ class ReplayBuffer:
         )
         next_states = (
             torch.from_numpy(
-                np.vstack([e.next_state for e in experiences if e is not None])
+                np.vstack(
+                    [
+                        np.expand_dims(e.next_state, axis=0)
+                        for e in experiences
+                        if e is not None
+                    ]
+                )
             )
             .float()
             .to(device)
         )
         dones = (
             torch.from_numpy(
-                np.vstack([e.done for e in experiences if e is not None]).astype(
-                    np.uint8
-                )
+                np.vstack(
+                    [
+                        np.expand_dims(e.done, axis=0)
+                        for e in experiences
+                        if e is not None
+                    ]
+                ).astype(np.uint8)
             )
             .float()
             .to(device)

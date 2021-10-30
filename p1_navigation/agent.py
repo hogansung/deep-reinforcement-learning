@@ -1,5 +1,5 @@
 import random
-from typing import List
+from typing import Type, Union, Tuple
 
 import numpy as np
 import torch
@@ -7,10 +7,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch import nn
 
-from model import QNetwork
+from model import QNetwork, QNetworkWithoutPixels
 from replay_buffer import ReplayBuffer
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
+BUFFER_SIZE = int(10000)  # replay buffer size
 BATCH_SIZE = 64  # minibatch size
 GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
@@ -24,7 +24,11 @@ class Agent:
     """Interacts with and learns from the environment."""
 
     def __init__(
-        self, state_size: int, action_size: int, seed: int,
+        self,
+        state_size: Union[int, Tuple[int]],
+        action_size: int,
+        seed: int,
+        model_cls: Type[QNetwork] = QNetworkWithoutPixels,
     ):
         """Initialize an Agent object.
 
@@ -39,8 +43,12 @@ class Agent:
         random.seed(seed)
 
         # Q-Network
-        self.qnetwork_local = QNetwork(state_size, action_size, seed).to(device)
-        self.qnetwork_target = QNetwork(state_size, action_size, seed).to(device)
+        self.qnetwork_local = model_cls(
+            state_size=state_size, action_size=action_size, seed=seed,
+        ).to(device)
+        self.qnetwork_target = model_cls(
+            state_size=state_size, action_size=action_size, seed=seed,
+        ).to(device)
         self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
 
         # Replay memory
@@ -53,7 +61,7 @@ class Agent:
         state: np.ndarray,
         action: int,
         reward: float,
-        next_state: List[int],
+        next_state: np.ndarray,
         done: bool,
     ):
         # Save experience in replay memory
@@ -100,10 +108,12 @@ class Agent:
         states, actions, rewards, next_states, dones = experiences
 
         max_q_values_for_next_state, _ = (
-            self.qnetwork_target(next_states).detach().max(dim=1)
+            self.qnetwork_target(next_states, batch_size=BATCH_SIZE).detach().max(dim=1)
         )
         q_target_values = rewards + gamma * max_q_values_for_next_state.unsqueeze(1)
-        q_expected_values = self.qnetwork_local(states).gather(1, actions)
+        q_expected_values = self.qnetwork_local(states, batch_size=BATCH_SIZE).gather(
+            1, actions
+        )
 
         loss = F.mse_loss(q_expected_values, q_target_values)
         # Minimize the loss
