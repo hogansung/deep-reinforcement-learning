@@ -10,7 +10,7 @@ from torch import nn
 from model import QNetwork, QNetworkWithoutPixels
 from replay_buffer import ReplayBuffer
 
-BUFFER_SIZE = int(10000)  # replay buffer size
+BUFFER_SIZE = int(5000)  # replay buffer size
 BATCH_SIZE = 64  # minibatch size
 GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
@@ -18,6 +18,7 @@ LR = 5e-4  # learning rate
 UPDATE_EVERY = 4  # how often to update the network
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
 
 
 class Agent:

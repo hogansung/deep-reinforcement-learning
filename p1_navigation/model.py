@@ -66,8 +66,8 @@ class QNetworkWithPixels(QNetwork):
         state_size: Union[int, Tuple[int]],
         action_size: int,
         seed: int,
-        hidden_layer_a_dim: int = 128,
-        hidden_layer_b_dim: int = 64,
+        hidden_layer_a_dim: int = 1024,
+        hidden_layer_b_dim: int = None,
     ):
         """Initialize parameters and build model.
         Params
@@ -79,50 +79,56 @@ class QNetworkWithPixels(QNetwork):
         super().__init__(
             state_size, action_size, seed, hidden_layer_a_dim, hidden_layer_b_dim,
         )
-        assert (84, 84) == state_size, "Unexpected state_size dimensions"
+        assert (4, 28, 28) == state_size, "Unexpected state_size dimensions"
 
         self.seed = torch.manual_seed(seed)
 
-        # Input shape is (84, 84)
+        # Input shape is (4, 28, 28), i.e. 4 stacks of images
         # Output shape is (n_classes)
 
-        # Output shape is W/S: (84/2, 84/2) = (42, 42)
-        self.conv1 = nn.Conv2d(
+        # # Output shape is (W-F+2P)/S+1: ((4-1+2*0)/1+1, (84-3+2*0)/3+1, (84-3+2*0)/3+1) = (4, 28, 28)
+        # Output shape is (W-F+2P)/S+1: ((4-1+2*0)/1+1, (28-3+2*1)/3+1, (84-3+2*1)/3+1) = (4, 10, 10)
+        self.conv1 = nn.Conv3d(
             in_channels=3,
-            out_channels=16,
-            kernel_size=7,
-            stride=2,
-            padding=3,  # kernel size // 2, so that the output size is not affected
+            out_channels=128,
+            kernel_size=(1, 3, 3),
+            stride=(1, 3, 3),
+            # padding=(0, 0, 0),
+            padding=(0, 1, 1),
         )
+        self.bn1 = nn.BatchNorm3d(num_features=128)
 
-        # Output shape is W/S: (42/2, 42/2) = (21, 21)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-
-        # Output shape is W/S: (21/3, 21/3) = (7, 7)
-        self.conv2 = nn.Conv2d(
-            in_channels=16,
-            out_channels=32,
-            kernel_size=3,
-            stride=3,
-            padding=1,  # kernel size // 2, so that the output size is not affected
+        # # Output shape is (W-F+2P)/S+1: ((4-1+2*0)/1+1, (28-3+2*1)/3+1, (84-3+2*1)/3+1) = (4, 10, 10)
+        # Output shape is (W-F+2P)/S+1: ((4-4+2*0)/1+1, (10-3+2*1)/3+1, (10-3+2*1)/3+1) = (1, 4, 4)
+        self.conv2 = nn.Conv3d(
+            in_channels=128,
+            out_channels=256,
+            kernel_size=(4, 3, 3),
+            stride=(1, 3, 3),
+            padding=(0, 1, 1),
         )
+        self.bn2 = nn.BatchNorm3d(num_features=256)
 
-        # Output shape is W/S: (7/7, 7/7) = (1, 1)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=3, stride=7, padding=1)
+        # # Output shape is (W-F+2P)/S+1: ((4-4+2*0)/1+1, (10-3+2*1)/3+1, (10-3+2*1)/3+1) = (1, 4, 4)
+        # self.conv3 = nn.Conv3d(
+        #     in_channels=256,
+        #     out_channels=256,
+        #     kernel_size=(4, 3, 3),
+        #     stride=(1, 3, 3),
+        #     padding=(0, 1, 1),
+        # )
+        # self.bn3 = nn.BatchNorm3d(num_features=256)
 
-        self.fc1 = nn.Linear(32 * 1 * 1, hidden_layer_a_dim)
-        self.fc2 = nn.Linear(hidden_layer_a_dim, hidden_layer_b_dim)
-        self.fc3 = nn.Linear(hidden_layer_b_dim, action_size)
+        self.fc1 = nn.Linear(256 * 1 * 4 * 4, hidden_layer_a_dim)
+        self.fc2 = nn.Linear(hidden_layer_a_dim, action_size)
 
     def forward(self, state: np.ndarray, batch_size: int = 1):
         """Build a network that maps state -> action values."""
         x = state
-        x = F.relu(self.conv1(x))
-        x = self.maxpool1(x)
-        x = F.relu(self.conv2(x))
-        x = self.maxpool2(x)
-        x = x.reshape(batch_size, -1)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        # x = F.relu(self.bn3(self.conv3(x)))
+        x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.fc2(x)
         return x
