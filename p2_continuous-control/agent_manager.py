@@ -10,7 +10,7 @@ from torch import optim, nn
 from model import Actor, Critic
 
 BUFFER_SIZE = int(1e6)
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 GAMMA = 0.99
 TAU = 1e-3
 LR_ACTOR = 1e-4
@@ -24,12 +24,18 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Currently is using device: {device}")
 
 
-class Agent:
-    """An agent that interacts with the environment."""
+class AgentManager:
+    """An agent manager class that spawns and controls `num_agents` internally, where each agent interacts with the
+    environment independently but shares the replay buffer and networks."""
 
-    actor_local = None
-
-    def __init__(self, state_size: int, action_size: int, seed: int = 514) -> None:
+    def __init__(
+        self,
+        num_agents: int,
+        state_size: int,
+        action_size: int,
+        seed: int = 514,
+    ) -> None:
+        self.num_agents = num_agents
         self.state_size = state_size
         self.agent_size = action_size
         random.seed(seed)
@@ -52,43 +58,55 @@ class Agent:
         )
 
         # Noise Process
-        self.noise = OUNoise(action_size, seed)
+        self.noises = [OUNoise(action_size, seed) for _ in range(num_agents)]
 
         # Replay Buffer
         self.replay_buffer = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
 
     def step(
         self,
-        state: np.ndarray,
-        action: np.ndarray,
-        reward: np.ndarray,
-        next_state: np.ndarray,
-        done: np.ndarray,
+        states: List[np.ndarray],
+        actions: List[np.ndarray],
+        rewards: List[np.ndarray],
+        next_states: List[np.ndarray],
+        dones: List[np.ndarray],
         time_stamp: int,
     ) -> None:
-        self.replay_buffer.add(state, action, reward, next_state, done)
+        for state, action, reward, next_state, done in zip(
+            states,
+            actions,
+            rewards,
+            next_states,
+            dones,
+        ):
+            self.replay_buffer.add(state, action, reward, next_state, done)
 
         # Only do learning after NUM_OF_TIMESTAMPS_PER_LEARN
         if time_stamp % NUM_OF_TIMESTAMPS_PER_UPDATE:
             return
 
         if self.replay_buffer.len() > BATCH_SIZE:
-            for _ in range(NUM_OF_LEARNS_PER_UPDATE):
-                experiences = self.replay_buffer.sample()
-                self.learn(experiences, GAMMA)
+            for _ in range(self.num_agents):
+                for _ in range(NUM_OF_LEARNS_PER_UPDATE):
+                    experiences = self.replay_buffer.sample()
+                    self.learn(experiences, GAMMA)
 
-    def act(self, state: np.ndarray, add_noise: bool = True) -> np.ndarray:
-        state = torch.from_numpy(state).float().to(device)
-        self.actor_local.eval()
-        with torch.no_grad():
-            action = self.actor_local(state).cpu().data.numpy()
-        self.actor_local.train()
-        if add_noise:
-            action += self.noise.sample()
-        return np.clip(action, -1, 1)
+    def act(self, states: List[np.ndarray], add_noise: bool = True) -> List[np.ndarray]:
+        actions: List[np.ndarray] = []
+        for state, noise in zip(states, self.noises):
+            state = torch.from_numpy(state).float().to(device)
+            self.actor_local.eval()
+            with torch.no_grad():
+                action = self.actor_local(state).cpu().data.numpy()
+            self.actor_local.train()
+            if add_noise:
+                action += noise.sample()
+            actions.append(np.clip(action, -1, 1))
+        return actions
 
     def reset(self) -> None:
-        self.noise.reset()
+        for noise in self.noises:
+            noise.reset()
 
     def learn(
         self,
