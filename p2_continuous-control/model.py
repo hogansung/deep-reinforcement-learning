@@ -19,12 +19,12 @@ class Actor(nn.Module):
         self.tanh = nn.Tanh()
         self.fc1 = nn.Linear(state_size, num_fc1_units)
         self.fc2 = nn.Linear(num_fc1_units, num_fc2_units)
-        self.f3c = nn.Linear(num_fc2_units, action_size)
+        self.fc3 = nn.Linear(num_fc2_units, action_size)
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         x = self.relu(self.fc1(state))
-        x = self.relu(self.fc2(state))
-        x = self.tanh(self.fc3(state))
+        x = self.relu(self.fc2(x))
+        x = self.tanh(self.fc3(x))
         return x
 
 
