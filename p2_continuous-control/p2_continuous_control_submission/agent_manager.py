@@ -10,7 +10,7 @@ from torch import optim, nn
 from model import Actor, Critic
 
 BUFFER_SIZE = int(1e6)
-BATCH_SIZE = 512
+BATCH_SIZE = 256
 GAMMA = 0.99
 TAU = 1e-3
 LR_ACTOR = 1e-4
