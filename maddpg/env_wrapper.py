@@ -47,12 +47,12 @@ def worker(remote, parent_remote, env_fn_wrapper):
 
 class SubprocVecEnv(VecEnv):
     def get_attr(self, attr_name: str, indices: VecEnvIndices = None) -> List[Any]:
-        pass
+        raise NotImplementedError
 
     def set_attr(
         self, attr_name: str, value: Any, indices: VecEnvIndices = None
     ) -> None:
-        pass
+        raise NotImplementedError
 
     def env_method(
         self,
@@ -61,18 +61,18 @@ class SubprocVecEnv(VecEnv):
         indices: VecEnvIndices = None,
         **method_kwargs
     ) -> List[Any]:
-        pass
+        raise NotImplementedError
 
     def env_is_wrapped(
         self, wrapper_class: Type[gym.Wrapper], indices: VecEnvIndices = None
     ) -> List[bool]:
-        pass
+        raise NotImplementedError
 
     def get_images(self) -> Sequence[np.ndarray]:
-        pass
+        raise NotImplementedError
 
     def seed(self, seed: Optional[int] = None) -> List[Union[None, int]]:
-        pass
+        raise NotImplementedError
 
     def __init__(self, env_fns, spaces=None):
         """
@@ -118,12 +118,12 @@ class SubprocVecEnv(VecEnv):
     def reset(self):
         for remote in self.remotes:
             remote.send(("reset", None))
-        return np.stack([remote.recv() for remote in self.remotes])
+        return [remote.recv() for remote in self.remotes]
 
     def reset_task(self):
         for remote in self.remotes:
             remote.send(("reset_task", None))
-        return np.stack([remote.recv() for remote in self.remotes])
+        return [remote.recv() for remote in self.remotes]
 
     def close(self):
         if self.closed:
