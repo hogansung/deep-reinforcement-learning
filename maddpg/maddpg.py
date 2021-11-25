@@ -59,7 +59,8 @@ class MADDPG:
         # to flip obs[parallel_agent][agent_number] to
         # obs[agent_number][parallel_agent]
         obs, obs_full, action, reward, next_obs, next_obs_full, done = map(
-            transpose_to_tensor, samples
+            transpose_to_tensor,
+            samples,
         )
 
         obs_full = torch.stack(obs_full)
@@ -78,14 +79,14 @@ class MADDPG:
         )
 
         with torch.no_grad():
-            q_next = agent.target_critic(target_critic_input)
+            q_next = agent.target_critic(target_critic_input).cpu()
 
         y = reward[agent_number].view(-1, 1) + self.discount_factor * q_next * (
             1 - done[agent_number].view(-1, 1)
         )
         action = torch.cat(action, dim=1)
         critic_input = torch.cat((obs_full.t(), action), dim=1).to(device)
-        q = agent.critic(critic_input)
+        q = agent.critic(critic_input).cpu()
 
         huber_loss = torch.nn.SmoothL1Loss()
         critic_loss = huber_loss(q, y.detach())
@@ -99,16 +100,16 @@ class MADDPG:
         # detach the other agents to save computation
         # saves some time for computing derivative
         q_input = [
-            self.maddpg_agent[i].actor(ob)
+            self.maddpg_agent[i].actor(ob.to(device))
             if i == agent_number
-            else self.maddpg_agent[i].actor(ob).detach()
+            else self.maddpg_agent[i].actor(ob.to(device)).detach()
             for i, ob in enumerate(obs)
         ]
 
         q_input = torch.cat(q_input, dim=1)
         # combine all the actions and observations for input to critic
         # many of the obs are redundant, and obs[1] contains all useful information already
-        q_input2 = torch.cat((obs_full.t(), q_input), dim=1)
+        q_input2 = torch.cat((obs_full.t().to(device), q_input), dim=1)
 
         # get the policy gradient
         actor_loss = -agent.critic(q_input2).mean()

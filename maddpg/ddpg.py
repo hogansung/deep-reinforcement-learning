@@ -1,6 +1,6 @@
 # individual network settings for each actor + critic pair
 # see networkforall for details
-
+import torch
 from torch.optim import Adam
 
 # add OU noise for exploration
@@ -8,8 +8,8 @@ from OUNoise import OUNoise
 from networkforall import Network
 from utilities import hard_update
 
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Currently, device {device} is used.")
 
 
 class DDPGAgent:
@@ -53,10 +53,10 @@ class DDPGAgent:
 
     def act(self, obs, noise=0.0):
         obs = obs.to(device)
-        action = self.actor(obs) + noise * self.noise.noise()
+        action = self.actor(obs).cpu() + noise * self.noise.noise()
         return action
 
     def target_act(self, obs, noise=0.0):
         obs = obs.to(device)
-        action = self.target_actor(obs) + noise * self.noise.noise()
+        action = self.target_actor(obs).cpu() + noise * self.noise.noise()
         return action

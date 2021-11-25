@@ -2,15 +2,17 @@
 Modified from OpenAI Baselines code to work with multi-agent envs
 """
 from multiprocessing import Process, Pipe
+from typing import Optional, List, Union, Sequence, Type, Any
 
+import gym
 import numpy as np
 from stable_baselines3.common.vec_env import VecEnv, CloudpickleWrapper
-from stable_baselines3.common.vec_env.base_vec_env import tile_images
+from stable_baselines3.common.vec_env.base_vec_env import tile_images, VecEnvIndices
 
 
 def worker(remote, parent_remote, env_fn_wrapper):
     parent_remote.close()
-    env = env_fn_wrapper.x()
+    env = env_fn_wrapper.var()
     while True:
         cmd, data = remote.recv()
         if cmd == "step":
@@ -44,6 +46,34 @@ def worker(remote, parent_remote, env_fn_wrapper):
 
 
 class SubprocVecEnv(VecEnv):
+    def get_attr(self, attr_name: str, indices: VecEnvIndices = None) -> List[Any]:
+        pass
+
+    def set_attr(
+        self, attr_name: str, value: Any, indices: VecEnvIndices = None
+    ) -> None:
+        pass
+
+    def env_method(
+        self,
+        method_name: str,
+        *method_args,
+        indices: VecEnvIndices = None,
+        **method_kwargs
+    ) -> List[Any]:
+        pass
+
+    def env_is_wrapped(
+        self, wrapper_class: Type[gym.Wrapper], indices: VecEnvIndices = None
+    ) -> List[bool]:
+        pass
+
+    def get_images(self) -> Sequence[np.ndarray]:
+        pass
+
+    def seed(self, seed: Optional[int] = None) -> List[Union[None, int]]:
+        pass
+
     def __init__(self, env_fns, spaces=None):
         """
         envs: list of gym environments to run in subprocesses
@@ -113,7 +143,7 @@ class SubprocVecEnv(VecEnv):
         for pipe in self.remotes:
             pipe.send(("render", None))
         imgs = [pipe.recv() for pipe in self.remotes]
-        bigimg = tile_images(imgs)
+        bigimg = tile_images(imgs[0])
         if mode == "human":
             import cv2
 
