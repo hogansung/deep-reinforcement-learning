@@ -50,7 +50,10 @@ class SubprocVecEnv(VecEnv):
         raise NotImplementedError
 
     def set_attr(
-        self, attr_name: str, value: Any, indices: VecEnvIndices = None
+        self,
+        attr_name: str,
+        value: Any,
+        indices: VecEnvIndices = None,
     ) -> None:
         raise NotImplementedError
 
@@ -64,7 +67,9 @@ class SubprocVecEnv(VecEnv):
         raise NotImplementedError
 
     def env_is_wrapped(
-        self, wrapper_class: Type[gym.Wrapper], indices: VecEnvIndices = None
+        self,
+        wrapper_class: Type[gym.Wrapper],
+        indices: VecEnvIndices = None,
     ) -> List[bool]:
         raise NotImplementedError
 
@@ -156,6 +161,39 @@ class SubprocVecEnv(VecEnv):
 
 
 class DummyVecEnv(VecEnv):
+    def get_attr(self, attr_name: str, indices: VecEnvIndices = None) -> List[Any]:
+        raise NotImplementedError
+
+    def set_attr(
+        self,
+        attr_name: str,
+        value: Any,
+        indices: VecEnvIndices = None,
+    ) -> None:
+        raise NotImplementedError
+
+    def env_method(
+        self,
+        method_name: str,
+        *method_args,
+        indices: VecEnvIndices = None,
+        **method_kwargs
+    ) -> List[Any]:
+        raise NotImplementedError
+
+    def env_is_wrapped(
+        self,
+        wrapper_class: Type[gym.Wrapper],
+        indices: VecEnvIndices = None,
+    ) -> List[bool]:
+        raise NotImplementedError
+
+    def get_images(self) -> Sequence[np.ndarray]:
+        raise NotImplementedError
+
+    def seed(self, seed: Optional[int] = None) -> List[Union[None, int]]:
+        raise NotImplementedError
+
     def __init__(self, env_fns):
         self.envs = [fn() for fn in env_fns]
         env = self.envs[0]
