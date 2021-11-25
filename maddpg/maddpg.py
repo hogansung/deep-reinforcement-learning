@@ -8,7 +8,7 @@ from ddpg import DDPGAgent
 from utilities import soft_update, transpose_to_tensor
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Currently, device {device} is used.")
+print(f"Device {device} is used in `maddpg.py`")
 
 
 class MADDPG:
@@ -74,19 +74,17 @@ class MADDPG:
         target_actions = self.target_act(next_obs)
         target_actions = torch.cat(target_actions, dim=1)
 
-        target_critic_input = torch.cat((next_obs_full.t(), target_actions), dim=1).to(
-            device
-        )
+        target_critic_input = torch.cat((next_obs_full.t(), target_actions), dim=1)
 
         with torch.no_grad():
-            q_next = agent.target_critic(target_critic_input).cpu()
+            q_next = agent.target_critic(target_critic_input)
 
         y = reward[agent_number].view(-1, 1) + self.discount_factor * q_next * (
             1 - done[agent_number].view(-1, 1)
         )
         action = torch.cat(action, dim=1)
-        critic_input = torch.cat((obs_full.t(), action), dim=1).to(device)
-        q = agent.critic(critic_input).cpu()
+        critic_input = torch.cat((obs_full.t(), action), dim=1)
+        q = agent.critic(critic_input)
 
         huber_loss = torch.nn.SmoothL1Loss()
         critic_loss = huber_loss(q, y.detach())
@@ -100,16 +98,16 @@ class MADDPG:
         # detach the other agents to save computation
         # saves some time for computing derivative
         q_input = [
-            self.maddpg_agent[i].actor(ob.to(device))
+            self.maddpg_agent[i].actor(ob)
             if i == agent_number
-            else self.maddpg_agent[i].actor(ob.to(device)).detach()
+            else self.maddpg_agent[i].actor(ob).detach()
             for i, ob in enumerate(obs)
         ]
 
         q_input = torch.cat(q_input, dim=1)
         # combine all the actions and observations for input to critic
         # many of the obs are redundant, and obs[1] contains all useful information already
-        q_input2 = torch.cat((obs_full.t().to(device), q_input), dim=1)
+        q_input2 = torch.cat((obs_full.t(), q_input), dim=1)
 
         # get the policy gradient
         actor_loss = -agent.critic(q_input2).mean()

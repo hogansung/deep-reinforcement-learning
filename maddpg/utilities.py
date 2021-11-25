@@ -6,6 +6,9 @@ import torch.distributed as dist
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Device {device} is used in `utilities.py`")
+
 
 def transpose_list(my_list):
     return list(map(list, zip(*my_list)))
@@ -13,7 +16,10 @@ def transpose_list(my_list):
 
 def transpose_to_tensor(input_list):
     return list(
-        map(lambda x: torch.tensor(x, dtype=torch.float), zip(*input_list)),
+        map(
+            lambda x: torch.tensor(np.array(x), dtype=torch.float).to(device),
+            zip(*input_list),
+        ),
     )
 
 

@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as f
 
 
 def hidden_init(layer):
@@ -23,7 +22,8 @@ class Network(nn.Module):
         self.fc1 = nn.Linear(input_dim, hidden_in_dim)
         self.fc2 = nn.Linear(hidden_in_dim, hidden_out_dim)
         self.fc3 = nn.Linear(hidden_out_dim, output_dim)
-        self.nonlin = f.relu  # leaky_relu
+        self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
         self.actor = actor
         # self.reset_parameters()
 
@@ -35,19 +35,19 @@ class Network(nn.Module):
     def forward(self, x):
         if self.actor:
             # return a vector of the force
-            h1 = self.nonlin(self.fc1(x))
+            h1 = self.relu(self.fc1(x))
 
-            h2 = self.nonlin(self.fc2(h1))
+            h2 = self.relu(self.fc2(h1))
             h3 = self.fc3(h2)
             norm = torch.norm(h3)
 
             # h3 is a 2D vector (a force that is applied to the agent)
             # we bound the norm of the vector to be between 0 and 10
-            return 10.0 * (f.tanh(norm)) * h3 / norm if norm > 0 else 10 * h3
+            return 10.0 * (self.tanh(norm)) * h3 / norm if norm > 0 else 10 * h3
 
         else:
             # critic network simply outputs a number
-            h1 = self.nonlin(self.fc1(x))
-            h2 = self.nonlin(self.fc2(h1))
+            h1 = self.relu(self.fc1(x))
+            h2 = self.relu(self.fc2(h1))
             h3 = self.fc3(h2)
             return h3

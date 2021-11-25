@@ -23,6 +23,7 @@ class MultiDiscrete(gym.Space):
     """
 
     def __init__(self, array_of_param_array):
+        super().__init__()
         self.low = np.array([x[0] for x in array_of_param_array])
         self.high = np.array([x[1] for x in array_of_param_array])
         self.num_discrete_space = self.low.shape[0]

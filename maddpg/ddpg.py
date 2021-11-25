@@ -9,7 +9,7 @@ from networkforall import Network
 from utilities import hard_update
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Currently, device {device} is used.")
+print(f"Device {device} is used in `ddpg.py`")
 
 
 class DDPGAgent:
@@ -52,11 +52,9 @@ class DDPGAgent:
         )
 
     def act(self, obs, noise=0.0):
-        obs = obs.to(device)
-        action = self.actor(obs).cpu() + noise * self.noise.noise()
+        action = self.actor(obs) + noise * self.noise.noise().to(device)
         return action
 
     def target_act(self, obs, noise=0.0):
-        obs = obs.to(device)
-        action = self.target_actor(obs).cpu() + noise * self.noise.noise()
+        action = self.target_actor(obs) + noise * self.noise.noise().to(device)
         return action
