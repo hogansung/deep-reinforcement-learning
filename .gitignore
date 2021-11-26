@@ -1,5 +1,12 @@
+# Ignore repo specific files
 .idea/
 */log/
+*/Banana_Linux/
+*/VisualBanana_Linux/
+*/Reacher_Linux_single_agent/
+*/Reacher_Linux_twenty_agents/
+*/Tennis_Linux/
+
 
 # Mac OS
 .DS_Store
