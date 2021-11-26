@@ -70,7 +70,7 @@ class MADDPG:
         agent.critic_optimizer.zero_grad()
 
         # critic loss = batch mean of (y- Q(s,a) from target network)^2
-        # y = reward of this timestep + discount * Q(st+1,at+1) from target network
+        # y = reward of this timestamp + discount * Q(st+1,at+1) from target network
         target_actions = self.target_act(next_obs)
         target_actions = torch.cat(target_actions, dim=1)
 
