@@ -1,11 +1,10 @@
 import copy
-import random
-from collections import deque, namedtuple
-from typing import List, Tuple
-
 import numpy as np
+import random
 import torch
+from collections import deque, namedtuple
 from torch import optim, nn
+from typing import List, Tuple
 
 from model import Actor, Critic
 
@@ -26,8 +25,6 @@ print(f"Currently is using device: {device}")
 
 class Agent:
     """An agent that interacts with the environment."""
-
-    actor_local = None
 
     def __init__(self, state_size: int, action_size: int, seed: int = 514) -> None:
         self.state_size = state_size
