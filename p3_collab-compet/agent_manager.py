@@ -76,7 +76,7 @@ class AgentManager:
             ]  # [(batch_size, action_size) * num_agents]
             concatenated_agent_next_states = torch.cat(agent_next_states, dim=1)
             concatenated_agent_next_actions = torch.cat(agent_next_actions, dim=1)
-            predicted_next_q_values = agent.target_critic(
+            predicted_next_q_values = agent.critic_target(
                 concatenated_agent_next_states,
                 concatenated_agent_next_actions,
             )
@@ -85,7 +85,7 @@ class AgentManager:
             )
         concatenated_agent_states = torch.cat(agent_states, dim=1)
         concatenated_agent_actions = torch.cat(agent_actions, dim=1)
-        expected_q_values = agent.local_critic(
+        expected_q_values = agent.critic_local(
             concatenated_agent_states,
             concatenated_agent_actions,
         )
@@ -97,13 +97,13 @@ class AgentManager:
 
         # Update local actor network
         predicted_agent_actions = [
-            self.agents[states_idx].local_actor(states)
+            self.agents[states_idx].actor_local(states)
             if agent_idx == states_idx
             else self.agents[states_idx].act(states=states, actor_name="local")
             for states_idx, states in enumerate(agent_states)
         ]  # [(batch_size, action_size) * num_agents]
         concatenated_predicted_agent_actions = torch.cat(predicted_agent_actions, dim=1)
-        local_actor_loss = -agent.local_critic(
+        local_actor_loss = -agent.critic_local(
             concatenated_agent_states,
             concatenated_predicted_agent_actions,
         ).mean()

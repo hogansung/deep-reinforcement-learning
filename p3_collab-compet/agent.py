@@ -30,29 +30,29 @@ class Agent:
         random.seed(seed)
 
         # Actor network: it takes agent-specific state into consideration
-        self.local_actor = Actor(state_size, action_size, seed).to(self.device)
-        self.target_actor = Actor(state_size, action_size, seed).to(self.device)
+        self.actor_local = Actor(state_size, action_size, seed).to(self.device)
+        self.actor_target = Actor(state_size, action_size, seed).to(self.device)
         self.local_actor_optimizer = optim.Adam(
-            self.local_actor.parameters(),
+            self.actor_local.parameters(),
             lr=LR_ACTOR,
         )
 
         # Critic network: it takes joint states and actions into consideration, but trained separately by agents
-        self.local_critic = Critic(num_agents, state_size, action_size, seed).to(
+        self.critic_local = Critic(num_agents, state_size, action_size, seed).to(
             self.device
         )
-        self.target_critic = Critic(num_agents, state_size, action_size, seed).to(
+        self.critic_target = Critic(num_agents, state_size, action_size, seed).to(
             self.device
         )
         self.local_critic_optimizer = torch.optim.Adam(
-            self.local_critic.parameters(),
+            self.critic_local.parameters(),
             lr=LR_CRITIC,
             weight_decay=WEIGHT_DECAY,
         )
 
         # Hard-update
-        self._soft_update(self.local_actor, self.target_actor, 1.0)
-        self._soft_update(self.local_critic, self.target_critic, 1.0)
+        self._soft_update(self.actor_local, self.actor_target, 1.0)
+        self._soft_update(self.critic_local, self.critic_target, 1.0)
 
     @staticmethod
     def _soft_update(
@@ -74,9 +74,9 @@ class Agent:
         noise: OUNoise = None,
     ) -> torch.Tensor:
         if actor_name == "local":
-            actor_model = self.local_actor
+            actor_model = self.actor_local
         elif actor_name == "target":
-            actor_model = self.target_actor
+            actor_model = self.actor_target
             assert (
                 noise is None
             ), "There should be no noise in the target model inference."
@@ -94,5 +94,5 @@ class Agent:
         )
 
     def soft_update(self, tau: float):
-        self._soft_update(self.local_actor, self.target_actor, tau)
-        self._soft_update(self.local_critic, self.target_critic, tau)
+        self._soft_update(self.actor_local, self.actor_target, tau)
+        self._soft_update(self.critic_local, self.critic_target, tau)
