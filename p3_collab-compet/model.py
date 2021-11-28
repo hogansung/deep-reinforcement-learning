@@ -16,6 +16,8 @@ class Actor(nn.Module):
         hidden_sizes: List[int] = (400, 300),
     ) -> None:
         super().__init__()
+        self.state_size = state_size
+        self.action_size = action_size
         self.seed = torch.manual_seed(seed)
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
@@ -40,16 +42,13 @@ class Actor(nn.Module):
         self.output_layer.weight.data.uniform_(-3e-3, 3e-3)
         self.output_layer.bias.data.fill_(0.1)
 
-    def forward(self, state: torch.Tensor) -> torch.Tensor:
-        # print(list(self.hidden_layers[0].parameters())[:20])
-        x = state
-        # print("zz", x)
+    def forward(self, states: torch.Tensor) -> torch.Tensor:
+        assert (
+            len(states.shape) == 2 and states.shape[1] == self.state_size
+        ), "Incorrect `states` shape for actor model. Expecting (batch_size, state_size)."
+        x = states
         for hidden_layer in self.hidden_layers:
-            x = hidden_layer(x)
-            # print("xdd", x[:10])
-            x = self.relu(x)
-            # print("xdd", hidden_layer(x)[0, :10])
-            # print("xd", x[:10])
+            x = self.relu(hidden_layer(x))
         return self.tanh(self.output_layer(x))
 
 
@@ -68,6 +67,9 @@ class Critic(nn.Module):
         assert (
             len(hidden_sizes) >= 2
         ), "Critic network needs at least two hidden layers."
+        self.num_agents = num_agents
+        self.state_size = state_size
+        self.action_size = action_size
         self.seed = torch.manual_seed(seed)
         self.relu = nn.ReLU()
         self.hidden_layers = nn.ModuleList(
@@ -94,7 +96,19 @@ class Critic(nn.Module):
         self.output_layer.weight.data.uniform_(-3e-3, 3e-3)
         self.output_layer.bias.data.fill_(0.1)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        x = self.relu(self.hidden_layers[0](state))
-        x = self.relu(self.hidden_layers[1](torch.cat((x, action), dim=1)))
+    def forward(
+        self,
+        agent_states: torch.Tensor,
+        agent_actions: torch.Tensor,
+    ) -> torch.Tensor:
+        assert (
+            len(agent_states.shape) == 2
+            and agent_states.shape[1] == self.state_size * self.num_agents
+        ), "Incorrect `agent_states` shape for critic model. Expecting (batch_size, state_size * num_agents)."
+        assert (
+            len(agent_actions.shape) == 2
+            and agent_actions.shape[1] == self.action_size * self.num_agents
+        ), "Incorrect `agent_actions` shape for critic model. Expecting (batch_size, action_size * num_agents)."
+        x = self.relu(self.hidden_layers[0](agent_states))
+        x = self.relu(self.hidden_layers[1](torch.cat((x, agent_actions), dim=1)))
         return self.output_layer(x)

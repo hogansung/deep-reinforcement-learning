@@ -83,21 +83,12 @@ class Agent:
         else:
             assert False, "Invalid actor name."
 
-        # print("WOWOWOWO", states.shape)
-        assert (
-            len(states.shape) == 2 and states.shape[1] == self.state_size
-        ), "Incorrect `states` shape for actor model"
-
-        # print("www", list(actor_model.hidden_layers[0].parameters()))
         actor_model.eval()
         with torch.no_grad():
             actions = actor_model(states).cpu().data.numpy()
-            # print("wow", states, actions)
         actor_model.train()
-        # print("actions", actions)
         if noise:
             actions += noise.sample()
-        # print("actions", actions.shape)
         return (
             torch.from_numpy(np.clip(actions, -1, +1)).float().detach().to(self.device)
         )
