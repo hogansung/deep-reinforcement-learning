@@ -1,4 +1,3 @@
-import copy
 import random
 
 import numpy as np
@@ -10,28 +9,31 @@ class OUNoise:
     def __init__(
         self,
         action_size: int,
-        seed: int,
+        seed: int = 514,
         mu: float = 0.0,
         theta: float = 0.15,
-        sigma: float = 0.2,
+        sigma: float = 0.20,
     ) -> None:
+        self.action_size = action_size
         self.mu = mu * np.ones(action_size)
         self.theta = theta
         self.sigma = sigma
         random.seed(seed)
-        self.state = None
+        np.random.seed(seed)
+        self.x = None
+        self.noise_scale = 1.0
+        self.noise_decay = 0.9995
+
+    def step(self) -> None:
+        self.noise_scale *= self.noise_decay
 
     def reset(self) -> None:
-        self.state = copy.copy(self.mu)
+        self.x = np.copy(self.mu)
 
     def sample(self) -> np.ndarray:
-        assert self.state is not None, f"`state` has never been reset"
-        x = self.state
-        dx = (
-            self.theta
-            * (self.mu - x)
-            * self.sigma
-            * np.array([random.random() for _ in range(len(x))])
+        assert self.x is not None, f"`OUNoise` should be reset first."
+        self.x += self.theta * (self.mu - self.x) + self.sigma * np.random.randn(
+            self.action_size
         )
-        self.state = x + dx
-        return self.state
+        # print("noise", self.noise_scale, self.noise_scale * self.x)
+        return self.noise_scale * self.x

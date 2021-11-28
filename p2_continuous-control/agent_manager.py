@@ -1,11 +1,10 @@
 import copy
-import random
-from collections import deque, namedtuple
-from typing import List, Tuple
-
 import numpy as np
+import random
 import torch
+from collections import deque, namedtuple
 from torch import optim, nn
+from typing import List, Tuple
 
 from model import Actor, Critic
 

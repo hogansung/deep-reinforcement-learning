@@ -1,6 +1,5 @@
 import random
 
-import nptyping as npt
 import numpy as np
 import torch
 from torch import optim, nn
@@ -9,7 +8,7 @@ from model import Actor, Critic
 from ounoise import OUNoise
 
 LR_ACTOR = 1e-4
-LR_CRITIC = 1e-4
+LR_CRITIC = 1e-3
 WEIGHT_DECAY = 0.0
 
 
@@ -51,6 +50,10 @@ class Agent:
             weight_decay=WEIGHT_DECAY,
         )
 
+        # Hard-update
+        self._soft_update(self.local_actor, self.target_actor, 1.0)
+        self._soft_update(self.local_critic, self.target_critic, 1.0)
+
     @staticmethod
     def _soft_update(
         local_model: nn.Module,
@@ -66,28 +69,37 @@ class Agent:
 
     def act(
         self,
-        states: npt.NDArray[float],
+        states: torch.Tensor,
+        actor_name: str,
         noise: OUNoise = None,
-    ) -> npt.NDArray[float]:
-        states = torch.from_numpy(states).float().to(self.device)
-        self.local_actor.eval()
-        with torch.no_grad():
-            action = self.local_actor(states).cpu().data.numpy()
-        self.local_actor.train()
-        if noise:
-            action += noise.sample()
-        return (
-            np.clip(action, -1, +1)
-            * 1  # hack: add `* 1` to get rid of static type check warning
-        )
+    ) -> torch.Tensor:
+        if actor_name == "local":
+            actor_model = self.local_actor
+        elif actor_name == "target":
+            actor_model = self.target_actor
+            assert (
+                noise is None
+            ), "There should be no noise in the target model inference."
+        else:
+            assert False, "Invalid actor name."
 
-    def target_act(self, states: torch.Tensor, noise: OUNoise = None) -> torch.Tensor:
+        # print("WOWOWOWO", states.shape)
+        assert (
+            len(states.shape) == 2 and states.shape[1] == self.state_size
+        ), "Incorrect `states` shape for actor model"
+
+        # print("www", list(actor_model.hidden_layers[0].parameters()))
+        actor_model.eval()
+        with torch.no_grad():
+            actions = actor_model(states).cpu().data.numpy()
+            # print("wow", states, actions)
+        actor_model.train()
+        # print("actions", actions)
+        if noise:
+            actions += noise.sample()
+        # print("actions", actions.shape)
         return (
-            torch.from_numpy(
-                self.target_actor(states).cpu().data.numpy() + noise.sample()
-            )
-            .float()
-            .to(self.device)
+            torch.from_numpy(np.clip(actions, -1, +1)).float().detach().to(self.device)
         )
 
     def soft_update(self, tau: float):
