@@ -29,10 +29,22 @@ One should follow
 the [instructions from Udacity DRL ND](https://github.com/udacity/deep-reinforcement-learning#dependencies) to figure
 out all the dependencies.
 
-In order to execute the Jupyter notebook correctly, one of the prebuilt simulators is required to be installed, based on
-the operating system.
+### Additional dependencies
+
+Given that the DRL ND environment is pretty old and is still on Python 3.6, one needs to explicitly install
+package `nptyping` in order to annotate numpy array properly.
+
+```bash
+pip install nptyping
+```
+
+If one is using Python 3.8+ versions, numpy array annotation is already included as part of the numpy library. For more
+details, please refer to [Typing (numpy.typing)](https://numpy.org/devdocs/reference/typing.html).
 
 ### Modified version of Tennis environment
+
+In order to execute the Jupyter notebook correctly, one of the prebuilt simulators is required to be installed, based on
+the operating system.
 
 - Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis_Linux.zip)
 - Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis.app.zip)
